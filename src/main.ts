@@ -4,39 +4,24 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { CorsMiddleware } from './middleware/cors.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Cấu hình CORS toàn diện cho Vercel
-  const corsOptions = {
-    origin: [
-      'http://localhost:8080',
-      'http://localhost:3000', // Thêm port 3000 nếu frontend chạy trên port này
-      'https://www.ngoctinhsolar.site',
-      'https://ngoctinhsolar.site', // Thêm version không có www
-      // Thêm domain Vercel của backend nếu cần
-      /\.vercel\.app$/, // Cho phép tất cả subdomain .vercel.app
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: [
-      'Content-Type', 
-      'Authorization',
-      'X-Requested-With',
-      'Accept',
-      'Origin',
-      'Access-Control-Request-Method',
-      'Access-Control-Request-Headers',
-    ],
+  // Tắt CORS mặc định của NestJS
+  // app.enableCors();
+
+  // Sử dụng middleware CORS tùy chỉnh
+  app.use(new CorsMiddleware().use);
+
+  // Hoặc cấu hình CORS đơn giản hơn
+  app.enableCors({
+    origin: true, // Cho phép tất cả origins
     credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  };
-
-  app.enableCors(corsOptions);
-
-  // Thêm global prefix nếu cần
-  // app.setGlobalPrefix('api');
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  });
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
@@ -45,7 +30,7 @@ async function bootstrap() {
   }));
 
   const port = process.env.PORT || 3000;
-  await app.listen(port, '0.0.0.0'); // Thêm '0.0.0.0' để bind tất cả interfaces
+  await app.listen(port, '0.0.0.0');
   
   console.log(`🚀 Ứng dụng đang chạy trên cổng ${port}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
